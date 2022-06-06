@@ -11,6 +11,7 @@ from math import sqrt
 import numpy as np
 import warnings
 import copy
+import scipy
 tl.set_backend('numpy')
 
 def max_like(tensor, core, factors, masked = False, M = None):
@@ -28,6 +29,30 @@ def KL_D(tensor, core, factors, masked = False, M = None):
     B_p = copy.deepcopy(B)
     B_p[np.where(B<1e-6)] = 1e-6
     return np.sum(np.where(mask, tensor*np.log(tensor/B_p, where=mask) -tensor +B, 0))+np.sum(np.where(tensor==0, B, 0))
+
+def LRT(tensor, full_NNTuck, nested_NNTuck, Type = 'redundant', Masked = False, M = None):
+    LRT_types = ['redundant', 'independent', 'dependent']
+    if Type not in LRT_types:
+        print('Type must be one of', LRT_types)
+        return
+    full_core, full_factors = full_NNTuck
+    C, K, K = np.shape(full_core)
+    L, _ = np.shape(full_factors[2])
+    full_ll = max_like(tensor, full_core, full_factors, Masked, M)
+    
+    nested_core, nested_factors = nested_NNTuck
+    C_n, _, _ = np.shape(nested_core)
+    nested_ll = max_like(tensor, nested_core, nested_factors, Masked, M)
+    if Type == 'redundant':
+        deg = (L-1)*K*K
+    elif Type == 'independent':
+        deg = (L-C)*K*K - L*C
+    elif Type == 'dependent':
+        deg = (L+K*K)*(C-C_n)
+    LR_statistic = -2*(nested_ll-full_ll)
+    pval = scipy.stats.chi2.sf(LR_statistic, deg)
+    print('p-value of layer {} test is {}'.format(Type, pval))
+    return (pval, full_ll, nested_ll)
 
 def GenerateSBM(N, G1, Omega, TYPE, G2, theta = None, undirected =  True, Poisson = True, unweighted = True):
     '''
@@ -579,7 +604,7 @@ def Y_interp(factors, ystar = False, r_star = None):
     ALPHA, C = np.shape(Y)
     if ystar:
         Y_star = np.zeros_like(Y)
-        r_bar = [r for r in range(12) if r not in r_star]
+        r_bar = [r for r in range(ALPHA) if r not in r_star]
         Y_rstar = Y[r_star, :]
         Y_rbar = Y[r_bar, :]
         Y_star[r_star, :] = np.eye(C)
