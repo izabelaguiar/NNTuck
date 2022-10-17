@@ -3,3 +3,4 @@ This github contains code and definitions for running NNTuck as described in A f
 
 The code depends on the following packages and the version number for which it is reproducible is noted. `numpy` (`version 1.22.2`), `tensorly` (`version 0.5.1`), `sklearn` (`version 0.23.2`), and `matplotlib` (`version 3.3.2`). When sweeping over parameters $K$ and $C$ in NNTuck it is most efficient to run the sweep in parallel, which depends on `joblib` (`version 1.0.1`) and on `os` to make sure the parallel runs don't use too much CPU.
 
+Note that the implementation of the multiplicative updates for NNTuck was done by updating the current tensorly implementation for nonnegative Tucker decomposition (which minimizes Frobenius loss instead of KL).
